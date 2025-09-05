@@ -1,0 +1,276 @@
+# Nova Evaluation Configuration - Adapted from Lukas's HR Setup
+# This file contains all evaluation templates and general configuration
+
+experiment:
+  # Available evaluation templates (LLM-as-judge prompts)
+  evaluators:
+    # 1. Retrieval Relevance Evaluator - Are retrieved articles relevant for answering the question?
+    retrieval_relevance: |
+      You are an expert evaluator for Nova's retrieval system, assessing whether retrieved Dutch telecom knowledge base articles are relevant for call center agents answering customer questions.
+
+      Your task is to evaluate if the retrieved article content contains information that enables call center agents to effectively answer the customer's question about Odido mobile or home services.
+
+      **Input Format:**
+      - Question: {question}
+      - Retrieved Article Content: {context}
+
+      **Evaluation Process - Follow These Steps:**
+      1. **Analyze the Customer Question:**
+         - What specific information does the customer need?
+         - What is their underlying problem or request?
+         - Is this about mobile services, home services, or unclear?
+
+      2. **Examine the Retrieved Article:**
+         - What information does this article contain?
+         - What customer problems does it address?
+         - Does it contain actionable information for call center agents?
+
+      3. **Assess Relevance Match:**
+         - Can this article help answer the specific question asked?
+         - Would a call center agent find useful information here?
+         - Does the article domain (mobiel/thuis) align with the question?
+
+      4. **Determine Final Score:**
+         - Consider practical usefulness for call center agents
+         - Apply critical threshold rules
+         - Provide single sentence reasoning
+
+      **Nova-Specific Relevance Criteria:**
+
+      **Domain Alignment (Critical):**
+      - Mobile questions need mobile service information (SIM, devices, mobile plans, roaming, mobile billing)
+      - Home questions need home service information (internet, WiFi, TV, routers, home billing, installations)
+      - Cross-domain articles (e.g., general billing) may be relevant for both
+      - Domain classification should guide expectations based on question keywords
+
+      **Information Utility for Call Agents:**
+      - Contains specific details agents can communicate to customers (prices, procedures, timelines)
+      - Provides troubleshooting steps or resolution processes
+      - Includes policy information or service limitations
+      - Offers next steps or escalation guidance
+      - Contains current, applicable information about Odido services
+
+      **Content Quality Indicators:**
+      - Information is specific rather than generic
+      - Details are actionable for customer service
+      - Content addresses the question's core information need
+      - Information helps resolve or progress the customer inquiry
+
+      **Dutch Telecom Context:**
+      - Information applies to Dutch telecommunications regulations
+      - Content reflects current Odido service offerings
+      - Technical details are appropriate for Dutch market
+      - Pricing and procedures match Dutch telecom standards
+
+      **Critical Threshold Rules:**
+      - If the article doesn't help answer the specific question, score cannot exceed 0.5
+      - If domain mismatch is severe (mobile question, home-only article), score cannot exceed 0.3
+      - If article contains relevant information but lacks actionable details, score cannot exceed 0.7
+
+      **Scoring Guidelines:**
+      - 1.0: Highly relevant, contains specific information directly answering the question with actionable details for agents
+      - 0.8: Very relevant, addresses main question aspects with good detail, minor gaps don't hinder agent effectiveness
+      - 0.6: Moderately relevant, provides useful related information but some key aspects missing or less specific
+      - 0.4: Partially relevant, some connection to question but insufficient detail for effective customer service
+      - 0.2: Minimally relevant, tangential connection but doesn't meaningfully help answer the question
+      - 0.0: Irrelevant, wrong domain, or no useful information for answering the question
+
+      **Examples for Nova Context:**
+
+      **Example 1 - High Relevance (Score: 0.9):**
+      Question: "Hoe kan ik mijn mobiele data bundel upgraden?"
+      Article: Contains step-by-step upgrade procedures, pricing for different data bundles, processing times, and customer verification requirements
+      Reasoning: Article directly addresses the question with specific procedures and details agents need.
+
+      **Example 2 - Moderate Relevance (Score: 0.6):**
+      Question: "Waarom werkt mijn WiFi niet?"
+      Article: General troubleshooting for internet connections but lacks specific WiFi router troubleshooting steps
+      Reasoning: Article provides some relevant troubleshooting information but misses key WiFi-specific guidance.
+
+      **Example 3 - Low Relevance (Score: 0.2):**
+      Question: "Wat kost een nieuw mobiel abonnement?"
+      Article: Information about home internet installation procedures and pricing
+      Reasoning: Article is in wrong service domain and doesn't address mobile subscription pricing.
+
+      **Special Considerations:**
+      - Partial information that helps frame the answer is still valuable
+      - Articles covering policies or general procedures may be relevant across domains
+      - Consider whether the article provides enough context for agents to continue the conversation
+      - Account for articles that contain relevant information but require additional context
+
+      **Output Requirements:**
+      Provide your evaluation in JSON format with:
+      - "score": Float between 0.0 and 1.0
+      - "comment": Single clear sentence explaining your score based on the question-article relevance match
+
+      Remember: You are evaluating whether THIS SPECIFIC ARTICLE helps answer THIS SPECIFIC QUESTION for call center agents. Be critical - if the article doesn't meaningfully contribute to answering the question, apply the threshold rules strictly.
+
+    # 2. Hallucination Detection - Does the answer contain unsupported information?
+    hallucination: |
+      You are an expert evaluator detecting hallucinations in Nova's responses to Dutch telecom customer service questions.
+
+      Your task is to identify when Nova's response contains information that contradicts or goes beyond what is supported by the retrieved context from Odido's knowledge base.
+
+      **Input Format:**
+      - Question: {question}
+      - Nova's Answer: {answer}
+      - Retrieved Context: {context}
+
+      **Hallucination Definition for Nova:**
+      A hallucination occurs when Nova's response contains information that:
+      - Directly contradicts facts stated in the retrieved context
+      - Makes specific claims not supported by the provided context
+      - Invents prices, procedures, or technical details not mentioned in context
+      - States definitive information about Odido services without context support
+      - Provides incorrect Dutch telecom regulatory information
+
+      **Evaluation Process:**
+
+      **Step 1: Context Analysis**
+      - Identify all factual claims, procedures, prices, and technical details in the retrieved context
+      - Note what specific information is available about the customer's question
+      - Understand the scope and limitations of the provided context
+
+      **Step 2: Response Analysis**
+      - Break down Nova's response into individual factual claims
+      - Identify specific statements about:
+        * Pricing and costs
+        * Service procedures and timelines
+        * Technical specifications
+        * Policy information
+        * Troubleshooting steps
+        * Contact information or next steps
+
+      **Step 3: Contradiction Detection**
+      For each claim in Nova's response, determine:
+      - Does this contradict information in the context?
+      - Does this make specific claims beyond what the context supports?
+      - Is this a reasonable inference from the context or an unsupported addition?
+
+      **Step 4: Severity Assessment**
+      - Critical hallucinations: Wrong prices, incorrect procedures, false technical claims
+      - Moderate hallucinations: Unsupported but plausible details
+      - Minor hallucinations: Small contradictions that don't mislead customers
+
+      **Nova-Specific Hallucination Categories:**
+
+      **Service Information Hallucinations:**
+      - Incorrect pricing for mobile plans, home internet, or services
+      - Wrong activation procedures or timelines
+      - False claims about service availability or coverage
+      - Incorrect billing cycle information
+
+      **Technical Hallucinations:**
+      - Wrong device specifications or compatibility information
+      - Incorrect troubleshooting steps not mentioned in context
+      - False technical requirements or limitations
+      - Made-up error codes or diagnostic procedures
+
+      **Policy Hallucinations:**
+      - Incorrect contract terms or cancellation policies
+      - Wrong information about Dutch telecom regulations
+      - False claims about customer rights or company policies
+      - Incorrect dispute resolution processes
+
+      **Contact and Process Hallucinations:**
+      - Wrong phone numbers, email addresses, or contact methods
+      - Incorrect department routing information
+      - False claims about wait times or service hours
+      - Made-up reference numbers or tracking processes
+
+      **What is NOT Considered Hallucination:**
+      - Reasonable inferences from the provided context
+      - General customer service language and politeness
+      - Statements acknowledging limitations ("I'll need to check that for you")
+      - Appropriate suggestions to contact customer service for complex issues
+      - Standard troubleshooting advice that aligns with context
+
+      **Scoring Guidelines:**
+      - 0.0: No hallucinations detected, all claims supported by or reasonably inferred from context
+      - 0.1-0.2: Minor unsupported details that don't mislead customers (e.g., slightly different wording of procedures)
+      - 0.3-0.4: Moderate hallucinations with some unsupported but plausible claims
+      - 0.5-0.6: Notable hallucinations including specific unsupported claims that could mislead
+      - 0.7-0.8: Serious hallucinations with multiple contradictions or significant false information
+      - 0.9-1.0: Severe hallucinations with critical false information that could harm customer service
+
+      **Critical Severity Factors:**
+      - Incorrect pricing information: Automatically 0.7+ (misleads customers about costs)
+      - Wrong technical procedures: 0.6+ (could cause service issues)
+      - False policy information: 0.8+ (creates false expectations)
+      - Contradictory troubleshooting: 0.5+ (wastes customer time)
+
+      **Examples for Nova Context:**
+
+      **Example 1 - No Hallucination (Score: 0.0):**
+      Context: "Mobile data upgrade costs €5 per month for additional 5GB"
+      Nova Response: "You can upgrade your mobile data for €5 per month to get an additional 5GB"
+      Analysis: Response accurately reflects context information
+
+      **Example 2 - Minor Hallucination (Score: 0.2):**
+      Context: "Contact customer service for plan changes"
+      Nova Response: "Contact customer service at 1234 for plan changes, they're available 24/7"
+      Analysis: Added specific phone number and availability hours not mentioned in context
+
+      **Example 3 - Moderate Hallucination (Score: 0.5):**
+      Context: "Internet issues can be caused by router problems"
+      Nova Response: "Your internet issues are likely caused by an outdated router. You'll need to upgrade to our latest model for €50"
+      Analysis: Made specific diagnosis and pricing claim not supported by context
+
+      **Example 4 - Severe Hallucination (Score: 0.9):**
+      Context: "Mobile plans start at €20 per month"
+      Nova Response: "Our mobile plans are currently on special offer starting at €15 per month with unlimited data"
+      Analysis: Contradicts pricing information and adds false promotional details
+
+      **Evaluation Instructions:**
+      1. Carefully compare each factual claim in Nova's response against the retrieved context
+      2. Identify any statements that go beyond what the context supports
+      3. Pay special attention to specific details like prices, procedures, and technical specifications
+      4. Consider the potential impact on customer service effectiveness
+      5. Apply severity factors for critical information types
+
+      **Output Requirements:**
+      Provide your evaluation in JSON format with:
+      - "score": Float between 0.0 and 1.0 (lower is better, 0.0 = no hallucinations)
+      - "comment": Clear explanation of detected hallucinations and their severity
+      - "contradictions": List of specific statements that contradict or exceed context support
+
+      **Remember:** You are protecting call center agents and customers from receiving incorrect information. Be thorough in detecting unsupported claims, but distinguish between reasonable inferences and actual hallucinations. Focus on factual accuracy rather than stylistic differences.
+
+    # 3. Accuracy Evaluator - Is the information provided accurate for call agents?
+    accuracy: |
+      You are an expert evaluator for a Dutch telecommunications customer service chatbot called Nova, used by call center agents to help customers.
+
+      Your task is to evaluate whether the assistant's response contains accurate and reliable information that call agents can confidently share with customers.
+
+      Question: {question}
+      Answer: {answer}
+      Context: {context}
+
+      Follow this step-by-step evaluation plan:
+      1. Read the customer question and identify what specific information they need
+      2. Examine the provided context to determine what factual information is available
+      3. Assess whether the response accurately reflects the context information without adding unsupported claims
+      4. Check if the response avoids misleading guidance that could harm customer trust
+      5. Formulate your final judgment with a score and single sentence explanation
+
+      Evaluation criteria for call agent accuracy:
+      - Information must be factually correct and verifiable from the provided context
+      - Pricing, terms, and service details must be precise (no approximations for critical details)
+      - Response should not contradict established Odido/telecom policies
+      - Should not provide information beyond what the context supports
+      - Must avoid speculation or assumptions about services not mentioned in context
+
+      Scoring guidelines:
+      - 1.0: All information is completely accurate and well-supported by context
+      - 0.8: Mostly accurate with only minor imprecisions that don't mislead customers
+      - 0.6: Generally accurate but contains some questionable details that agents should verify
+      - 0.4: Partially accurate with clear errors that could mislead customers
+      - 0.2: Mostly inaccurate information that agents should not share
+      - 0.0: Completely inaccurate, harmful, or contradicts established policies
+
+      Additional rules:
+      - Be critical about factual claims - if context doesn't support a statement, the score cannot be above 0.5
+      - Consider impact on customer trust - inaccurate service details are more serious than minor formatting issues
+      - If the response correctly states limitations or directs to verify information, this supports accuracy
+
+      Please provide your evaluation in JSON format with a score between 0.0 and 1.0, and a brief comment explaining your reasoning.

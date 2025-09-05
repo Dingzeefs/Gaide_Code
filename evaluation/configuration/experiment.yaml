@@ -1,0 +1,45 @@
+# Nova Experiment Configuration - V1 Testing
+# Adapted from Lukas's HR setup for Nova's 3-agent workflow testing
+
+experiment:
+  dataset_name: nova_clean_dataset_v1
+  dataset_description: Nova V1 Experiment Dataset - Testing 3-Agent Pipeline Improvements
+  experiment_name: nova_experiment_v1
+  eval_model: gpt
+
+  # Evaluation criteria for experiments
+  evaluations:
+    - retrieval_relevance
+    - hallucination
+    - accuracy
+
+# Experiment parameters
+parameters:
+  mode: dev  # "dev" for development environment, "prod" for production
+  batch_size: 10  # Number of questions to process in parallel
+  timeout: 30  # Timeout in seconds for Nova responses
+  retry_attempts: 3  # Number of retry attempts for failed requests
+
+# Nova connection settings
+connection:
+  websocket_url: nova_test.dev01.datascience-tmnl.nl
+  aws_region: eu-central-1
+  pem_secret_arn: arn:aws:secretsmanager:eu-central-1:116660942516:secret:ds-ecs-dev-nova-milvus-server-pem-certficate-vPwHDB
+
+# Experiment metadata
+metadata:
+  version: v1.0.0
+  created_by: Nova Evaluation System
+  description: V1 experiment testing Nova 3-agent workflow improvements
+  dataset_type: experiment
+  language: Dutch
+  domain: telecommunications
+  service_areas:
+    - mobiel
+    - thuis
+    - onduidelijk
+
+# Expected improvements over V0
+improvements:
+  target_relevance: 0.85
+  target_accuracy: 0.90
