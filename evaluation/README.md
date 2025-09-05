@@ -1,6 +1,6 @@
 # Nova Evaluation System
 
-A simple evaluation system for testing Nova's AI assistant performance. Designed for junior developers but powerful enough for production use.
+A simple evaluation system for testing Nova's AI assistant performance.
 
 ## Table of Contents
 - [Quick Start](#quick-start-5-minutes)
